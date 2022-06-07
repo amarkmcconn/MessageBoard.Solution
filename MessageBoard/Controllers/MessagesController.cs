@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MessageBoard.Models;
@@ -20,9 +22,22 @@ namespace MessageBoard.Controllers
 
     // GET api/Messages
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Message>>> Get()
+    public async Task<ActionResult<IEnumerable<Message>>> Get(string groups, string authors, DateTime date)
     {
-      return await _db.Messages.ToListAsync();
+      var query = _db.Messages.AsQueryable();
+      if (groups != null)
+      {
+        query = query.Where(entry => entry.Group == groups);
+      }
+      if (authors != null)
+      {
+        query = query.Where(entry => entry.Author == authors);
+      }
+      if (date != null)
+      {
+        query = query.Where(entry => entry.Date == date);
+      }
+      return await query.ToListAsync();
     }
 
     // POST api/Messages
@@ -79,6 +94,21 @@ namespace MessageBoard.Controllers
     private bool MessageExists(int id)
     {
       return _db.Messages.Any(e => e.MessageId == id);
+    }
+    // DELETE: api/Messages/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteMessage(int id)
+    {
+      var message = await _db.Messages.FindAsync(id);
+      if (message == null)
+      {
+        return NotFound();
+      }
+
+      _db.Messages.Remove(message);
+      await _db.SaveChangesAsync();
+
+      return NoContent();
     }
   }
 }
